@@ -1,0 +1,42 @@
+---
+- name: "创建远程主机上的版本目录"
+  file:
+    path: "{{item}}"
+    state: directory
+  with_items:
+    - /data/www
+    - /data/releases/{{SERVICE_NAME}}/{{_VERSION}}
+  tags: deploy
+
+- name: "将代码同步到远程主机版本目录"
+  unarchive:
+    src: /{{BUILD_TMP}}/{{_VERSION}}.tar.bz2
+    dest: /data/releases/{{SERVICE_NAME}}/{{_VERSION}}
+  tags: deploy
+
+- name: "将项目部署到生产目录"
+  file:
+    state: link
+    path: "{{WEBROOT_DIR}}"
+    src: /data/releases/{{SERVICE_NAME}}/{{_VERSION}}
+  tags: deploy
+
+- name: "执行自由脚本"
+  script: chdir="{{WEBROOT_DIR}}" free.sh
+  tags: deploy
+
+- name: "保留10个版本在版本目录"
+  script: chdir=/data/releases/{{SERVICE_NAME}} keepfive.sh
+  tags: deploy
+
+- name: "获取远程目录下内容"
+  shell: 'ls -lrt {{WEBROOT_DIR}}/ | grep -v total'
+  register: info
+  run_once: true
+  tags: deploy
+
+- name: "列出远程目录下的文件"
+  debug:
+    msg: "{{ info.stdout_lines }}"
+  run_once: true
+  tags: deploy

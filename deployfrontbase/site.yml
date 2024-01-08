@@ -1,0 +1,9 @@
+---
+- hosts: "remote"
+  serial: 5
+  max_fail_percentage: 0
+  name: "开始部署服务上线"
+  remote_user: "root"
+  roles:
+    - deploy
+    - rollback

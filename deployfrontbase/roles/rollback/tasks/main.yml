@@ -1,0 +1,30 @@
+---
+- name: "检查将要回滚的旧版本是否存在"
+  shell: 'if [ -d /data/releases/{{ SERVICE_NAME }}/{{ _VERSION }} ]; then echo "true"; else echo "false";fi'
+  register: versionexists
+  tags: rollback
+
+- name: "将旧版本回滚到当前项目根目录"
+  file:
+    state: link
+    src: /data/releases/{{ SERVICE_NAME }}/{{ _VERSION }}
+    path: "{{WEBROOT_DIR}}"
+  when: versionexists.stdout == "true"
+  tags: rollback
+
+- name: "执行自由脚本"
+  script: chdir="{{WEBROOT_DIR}}" free.sh
+  tags: rollback
+
+- name: "列出项目根目录下的文件"
+  shell: 'ls -lrt {{WEBROOT_DIR}}/ | grep -v total'
+  register: info
+  ignore_errors: True
+  run_once: true
+  tags: rollback
+
+- name: "打印"
+  debug:
+    msg: "{{ info.stdout_lines }}"
+  run_once: true
+  tags: rollback
